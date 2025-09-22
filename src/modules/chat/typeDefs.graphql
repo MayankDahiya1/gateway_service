@@ -1,0 +1,77 @@
+# Rate limiting directive
+directive @rateLimit(
+  limit: Int!
+  duration: Int!
+  message: String
+) on FIELD_DEFINITION
+
+# Authorization directive for account types
+directive @accountAuth(accountType: String) on FIELD_DEFINITION
+
+type ConversationResponse {
+  conversationId: ID
+  title: String
+  userMessage: String
+  assistantMessage: String
+  status: String
+  message: String
+}
+
+type DeleteResponse {
+  status: String!
+  message: String!
+}
+
+type Message {
+  id: ID
+  role: String
+  content: String
+  createdAt: String
+  conversationId: ID
+}
+
+type SendMessageResponse {
+  createdAt: String
+  role: String
+  content: String
+  status: String
+  message: String
+}
+
+type Conversation {
+  id: ID!
+  title: String!
+  userId: ID!
+  createdAt: String!
+}
+
+extend type Query {
+  ChatGetConversations: [Conversation!]!
+    @accountAuth
+    @rateLimit(limit: 5, duration: 60)
+  ChatGetMessages(conversationId: String!): [Message!]!
+    @accountAuth
+    @rateLimit(limit: 5, duration: 60)
+}
+
+extend type Mutation {
+  ChatStartConversation(message: String!): ConversationResponse!
+    @accountAuth
+    @rateLimit(limit: 5, duration: 60)
+  ChatDeleteConversation(conversationId: String!): DeleteResponse!
+    @accountAuth
+    @rateLimit(limit: 5, duration: 60)
+  ChatSendMessage(
+    conversationId: String!
+    message: String!
+  ): SendMessageResponse! @accountAuth @rateLimit(limit: 5, duration: 60)
+}
+
+extend type Subscription {
+  conversationCreated: Conversation!
+    @accountAuth
+    @rateLimit(limit: 5, duration: 60)
+  messageSent(conversationId: String!): Message!
+    @accountAuth
+    @rateLimit(limit: 5, duration: 60)
+}

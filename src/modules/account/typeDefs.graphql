@@ -1,0 +1,59 @@
+# Rate limiting directive
+directive @rateLimit(
+  limit: Int!
+  duration: Int!
+  message: String
+) on FIELD_DEFINITION
+
+# Authorization directive for account types
+directive @accountAuth(accountType: String) on FIELD_DEFINITION
+
+type Account {
+  id: String
+  email: String
+  name: String
+  role: String
+  createdAt: String
+  updatedAt: String
+  password: String
+  message: String
+  status: String
+}
+
+type LoginResponse {
+  refreshToken: String
+  accessToken: String
+  status: String
+  message: String
+  Account: Account
+}
+
+type AuthPayload {
+  accessToken: String
+  refreshToken: String
+  status: String
+  message: String
+}
+
+type AccountDeleted {
+  userId: ID!
+  email: String!
+  deletedAt: String!
+}
+
+type Query {
+  AccountGetAll(limit: Int, search: String): [Account!]!
+    @accountAuth(accountType: "ADMIN")
+    @rateLimit(limit: 5, duration: 60)
+  AccountGetById(id: ID!): Account
+    @accountAuth
+    @rateLimit(limit: 5, duration: 60)
+}
+
+type Mutation {
+  AccountCreate(email: String!, password: String!, name: String!): Account!
+  AccountLogin(email: String!, password: String!): LoginResponse!
+  AccountTokenGenerate(refreshToken: String!): AuthPayload!
+    @rateLimit(limit: 5, duration: 60)
+  AccountDelete: Account @accountAuth @rateLimit(limit: 5, duration: 60)
+}

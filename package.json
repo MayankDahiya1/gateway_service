@@ -1,0 +1,42 @@
+{
+  "name": "gateway",
+  "version": "1.0.0",
+  "description": "GraphQL Gateway for Account and Chat services",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "DEBUG=* nodemon --watch src src/server.js",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@apollo/server": "^4.10.0",
+    "@graphql-tools/load-files": "^7.0.1",
+    "@graphql-tools/merge": "^9.1.1",
+    "@graphql-tools/schema": "^10.0.25",
+    "@graphql-tools/utils": "^10.9.1",
+    "apollo-server": "^3.13.0",
+    "apollo-server-core": "^3.13.0",
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "debug": "^4.3.4",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.1",
+    "express-rate-limit": "^8.1.0",
+    "graphql": "^16.9.0",
+    "graphql-rate-limit-directive": "^2.0.6",
+    "graphql-subscriptions": "^3.0.0",
+    "graphql-tag": "^2.12.6",
+    "graphql-ws": "^6.0.6",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "kafkajs": "^2.2.4",
+    "rate-limiter-flexible": "^7.3.1",
+    "socket.io": "^4.8.1",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
