@@ -7,7 +7,7 @@ const log = debug("gateway:kafka");
 
 const kafka = new Kafka({
   clientId: "gateway-service",
-  brokers: [process.env.KAFKA_BROKER || "kafka:9092"],
+  brokers: [process.env.KAFKA_BROKER || "127.0.0.1:9092"],
 });
 
 export const consumer = kafka.consumer({ groupId: "gateway-consumers" });
