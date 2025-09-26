@@ -43,5 +43,6 @@ jobs:
             -e CHAT_SERVICE_URL=http://chat_service:4002 \
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
             -e KAFKA_BROKER=${{ secrets.KAFKA_BROKER }} \
+            -e FRONTEND_URL=${{ secrets.FRONTEND_URL }} \
             -p 4000:4000 \
             ${{ secrets.DOCKERHUB_USERNAME }}/gateway_service:latest

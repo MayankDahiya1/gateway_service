@@ -33,7 +33,7 @@ const _App = express();
 if (process.env.NODE_ENV === "production") {
   _App.use(
     cors({
-      origin: process.env.FRONTEND_URL || "https://yourdomain.com",
+      origin: process.env.FRONTEND_URL,
       credentials: true,
     })
   );
