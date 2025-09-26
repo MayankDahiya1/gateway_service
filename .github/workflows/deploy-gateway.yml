@@ -1,0 +1,41 @@
+name: Deploy Gateway Service
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-deploy:
+    runs-on: self-hosted
+    environment: production
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/gateway_service:latest .
+
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/gateway_service:latest
+
+      - name: Restart container on server
+        run: |
+          if [ "$(docker ps -q -f name=gateway_service)" ]; then
+            echo "🔄 Restarting existing container..."
+            docker stop gateway_service
+            docker rm gateway_service
+          else
+            echo "🚀 No existing container, creating new one..."
+          fi
+
+          docker run -d --name gateway_service \
+            --network microservices-infra_default \
+            -e PORT=4000 \
+            -e NODE_ENV=production \
+            -e ACCOUNT_SERVICE_URL=http://account_service:4001 \
+            -e CHAT_SERVICE_URL=http://chat_service:4002 \
+            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            -p 4000:4000 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/gateway_service:latest

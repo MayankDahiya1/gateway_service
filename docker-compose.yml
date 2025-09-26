@@ -1,8 +1,0 @@
-services:
-  gateway:
-    build: .
-    ports: ["4000:4000"]
-    environment:
-      - ACCOUNT_SERVICE_URL=http://host.docker.internal:4001
-      - CHAT_SERVICE_URL=http://host.docker.internal:5000
-      - JWT_SECRET=${JWT_SECRET}
