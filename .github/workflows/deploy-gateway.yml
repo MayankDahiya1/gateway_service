@@ -7,27 +7,23 @@ on:
 jobs:
   build-deploy:
     runs-on: self-hosted
-    environment: production
     steps:
       - uses: actions/checkout@v3
 
-      - name: Log in to DockerHub
+      - name: DockerHub Login
         run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      - name: Build Docker image
+      - name: Build Docker Image
         run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/gateway_service:latest .
 
-      - name: Push Docker image
+      - name: Push Docker Image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/gateway_service:latest
 
-      - name: Restart container on server
+      - name: Deploy Container
         run: |
           if [ "$(docker ps -q -f name=gateway_service)" ]; then
-            echo "🔄 Restarting existing container..."
             docker stop gateway_service
             docker rm gateway_service
-          else
-            echo "🚀 No existing container, creating new one..."
           fi
 
           docker run -d --name gateway_service \

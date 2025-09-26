@@ -1,30 +1,31 @@
-# Stage 1: Build
+# Stage 1: Build dependencies
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Install pnpm
+# Install pnpm globally
 RUN npm install -g pnpm
 
-# Copy dependency files
+# Copy package files
 COPY package.json pnpm-lock.yaml* ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Copy source files
 COPY . .
-
-# Build if needed (skip for JS)
-# RUN pnpm build
 
 # Stage 2: Runtime
 FROM node:20-alpine AS runtime
 WORKDIR /app
 
+# Install pnpm globally
 RUN npm install -g pnpm
 
-# Copy only necessary files
+# Copy everything from build
 COPY --from=build /app /app
 
+# Expose port
 EXPOSE 4000
+
+# Start app
 CMD ["pnpm", "start"]

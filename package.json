@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "dev": "DEBUG=* nodemon --watch src src/server.js",
-    "start": "node server.js"
+    "start": "node src/server.js"
   },
   "author": "",
   "license": "ISC",
