@@ -1,9 +1,9 @@
 // kafkaClient.js
 import { Kafka } from "kafkajs";
 import { EventEmitter } from "events";
-import debug from "debug";
+import { createLogger } from "../utils/logger.js";
 
-const log = debug("gateway:kafka");
+const logger = createLogger("gateway:kafka");
 
 const kafka = new Kafka({
   clientId: "gateway-service",
@@ -14,26 +14,35 @@ export const consumer = kafka.consumer({ groupId: "gateway-consumers" });
 export const kafkaEmitter = new EventEmitter();
 
 export async function initKafka() {
-  await consumer.connect();
-  await consumer.subscribe({
-    topic: "conversation-created",
-    fromBeginning: false,
-  });
-  await consumer.subscribe({ topic: "message-sent", fromBeginning: false });
+  try {
+    await consumer.connect();
+    await consumer.subscribe({
+      topic: "conversation-created",
+      fromBeginning: false,
+    });
+    await consumer.subscribe({ topic: "message-sent", fromBeginning: false });
 
-  log("Kafka connected and subscribed (gateway)");
+    logger.info("Kafka connected and subscribed", {
+      topics: ["conversation-created", "message-sent"],
+    });
 
-  await consumer.run({
-    eachMessage: async ({ topic, message }) => {
-      try {
-        const value = JSON.parse(message.value.toString());
-        log("Gateway Kafka message received:", topic, value);
+    logger.info("Kafka connected and subscribed (gateway)");
 
-        // Broadcast to in-memory emitter
-        kafkaEmitter.emit(topic, value);
-      } catch (err) {
-        log("Kafka parse error:", err.message);
-      }
-    },
-  });
+    await consumer.run({
+      eachMessage: async ({ topic, message }) => {
+        try {
+          const value = JSON.parse(message.value.toString());
+          logger.debug("Gateway Kafka message received", { topic, value });
+
+          // Broadcast to in-memory emitter
+          kafkaEmitter.emit(topic, value);
+        } catch (err) {
+          logger.error("Kafka parse error", err, { topic });
+        }
+      },
+    });
+  } catch (err) {
+    logger.error("Kafka initialization failed", err);
+    throw err;
+  }
 }

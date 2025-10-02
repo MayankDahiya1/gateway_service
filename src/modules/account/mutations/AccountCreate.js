@@ -2,35 +2,47 @@
  * IMPORTS
  */
 import axios from "axios";
-import debug from "debug";
+import { createLogger } from "../../../utils/logger.js";
+import {
+  ValidationError,
+  ServiceUnavailableError,
+} from "../../../graphql/errorHandling.js";
 
 /*
  * ENV
  */
 const ENV = process.env;
-const log = debug("gateway:account:create");
+const logger = createLogger("gateway:account:create");
 
 /*
  * EXPORTS
  */
-export default async function AccountCreate(_, args) {
+export default async function AccountCreate(_, args, context) {
+  const startTime = Date.now();
+
   try {
     // Input validation
     const { email, password, name } = args;
 
     if (!email || !email.includes("@")) {
-      throw new Error("Valid email address is required");
+      throw new ValidationError("Valid email address is required", "email");
     }
 
     if (!password || password.length < 6) {
-      throw new Error("Password must be at least 6 characters long");
+      throw new ValidationError(
+        "Password must be at least 6 characters long",
+        "password"
+      );
     }
 
     if (!name || name.trim().length < 2) {
-      throw new Error("Name must be at least 2 characters long");
+      throw new ValidationError(
+        "Name must be at least 2 characters long",
+        "name"
+      );
     }
 
-    // Call account_service GraphQL endpoint
+    logger.info("Account creation started", { email, name }); // Call account_service GraphQL endpoint
     const res = await axios.post(
       `${ENV.ACCOUNT_SERVICE_URL}/graphql`,
       {
@@ -60,24 +72,52 @@ export default async function AccountCreate(_, args) {
       throw new Error(msg);
     }
 
+    const responseTime = Date.now() - startTime;
+    logger.serviceCall("account-service", "AccountCreate", true, responseTime, {
+      userId: res.data.data.AccountCreate.id,
+    });
+
     // Return created account
     return res.data.data.AccountCreate;
   } catch (err) {
-    log("Account creation error:", err.message);
+    const responseTime = Date.now() - startTime;
+
+    // Re-throw validation errors as-is
+    if (err instanceof ValidationError) {
+      throw err;
+    }
+
+    logger.serviceCall(
+      "account-service",
+      "AccountCreate",
+      false,
+      responseTime,
+      {
+        error: err.message,
+        email: args.email,
+      }
+    );
 
     // Handle different error types
     if (err.code === "ECONNREFUSED") {
-      throw new Error("Account service is unavailable");
+      throw new ServiceUnavailableError(
+        "Account service",
+        "Service is unavailable"
+      );
     }
 
     if (err.response?.status === 400) {
-      throw new Error("Invalid account data provided");
+      throw new ValidationError("Invalid account data provided");
     } else if (err.response?.status === 409) {
-      throw new Error("Account with this email already exists");
+      throw new ValidationError(
+        "Account with this email already exists",
+        "email"
+      );
     } else if (err.response?.status >= 500) {
-      throw new Error("Account service temporarily unavailable");
+      throw new ServiceUnavailableError("Account service");
     }
 
+    logger.error("Account creation failed", err, { email: args.email });
     throw new Error(err.message || "Account creation failed");
   }
 }

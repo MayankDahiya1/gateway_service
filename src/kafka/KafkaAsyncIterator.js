@@ -1,7 +1,7 @@
 import { kafkaEmitter } from "./kafkaClient.js";
-import debug from "debug";
+import { createLogger } from "../utils/logger.js";
 
-const log = debug("gateway:kafka:iterator");
+const logger = createLogger("gateway:kafka:iterator");
 
 export function kafkaAsyncIterator(topic, userId) {
   return {
@@ -10,7 +10,7 @@ export function kafkaAsyncIterator(topic, userId) {
       let resolve;
 
       const handler = (msg) => {
-        log("Received message:", msg);
+        logger.debug("Received message", { msg, userId });
         if (msg.userId === userId) {
           if (resolve) {
             resolve(msg);

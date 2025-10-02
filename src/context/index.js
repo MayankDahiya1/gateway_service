@@ -2,16 +2,13 @@
  * IMPORTS
  */
 import jwt from "jsonwebtoken";
-import debug from "debug";
 import { PubSub } from "graphql-subscriptions";
+import { createLogger } from "../utils/logger.js";
 
 /*
- * DEBUG LOGGING
+ * LOGGING
  */
-const log = {
-  context: debug("app:context"),
-  db: debug("app:db"),
-};
+const logger = createLogger("gateway:context");
 
 /*
  * EXPORTS
@@ -25,19 +22,19 @@ export const verifyToken = (token) => {
   if (!token) return null;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    log.context("Token verified for user:", decoded.id);
+    logger.debug("Token verified for user:", { userId: decoded.id });
     return { ...decoded, token: token };
   } catch (err) {
     if (err.name === "TokenExpiredError") {
-      log.context("Token expired");
+      logger.warn("Token expired");
       return null;
     }
     if (err.name === "JsonWebTokenError") {
-      log.context("Invalid token provided");
+      logger.debug("Invalid token provided");
       return null;
     }
 
-    log.context("Token verification failed:", err.message);
+    logger.warn("Token verification failed", err);
     return null;
   }
 };
@@ -46,7 +43,7 @@ export const verifyToken = (token) => {
  * CREATE CONTEXT FUNCTION
  */
 export const createContext = async ({ req }) => {
-  log.context("Creating context for request");
+  logger.debug("Creating context for request");
 
   // Token extraction
   const authHeader = req?.headers?.authorization || "";
@@ -56,17 +53,17 @@ export const createContext = async ({ req }) => {
 
   const user = verifyToken(token);
 
-  log.context(
-    "Context created - User:",
-    user?.id || "anonymous",
-    "IP:",
-    req?.socket?.remoteAddress || "unknown"
-  );
+  logger.debug("Context created", {
+    userId: user?.id || "anonymous",
+    ip: req?.socket?.remoteAddress || "unknown",
+    userAgent: req?.headers?.["user-agent"]?.substring(0, 50) + "...",
+  });
 
   return {
     user,
     ip: req?.socket?.remoteAddress || "unknown",
     device: req?.headers?.["user-agent"] || "unknown",
     pubsub,
+    logger: createLogger(`gateway:request:${user?.id || "anonymous"}`),
   };
 };

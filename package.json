@@ -16,6 +16,8 @@
     "@graphql-tools/merge": "^9.1.1",
     "@graphql-tools/schema": "^10.0.25",
     "@graphql-tools/utils": "^10.9.1",
+    "@sentry/integrations": "^7.114.0",
+    "@sentry/node": "^10.17.0",
     "apollo-server": "^3.13.0",
     "apollo-server-core": "^3.13.0",
     "axios": "^1.7.9",
@@ -34,6 +36,8 @@
     "kafkajs": "^2.2.4",
     "rate-limiter-flexible": "^7.3.1",
     "socket.io": "^4.8.1",
+    "winston": "^3.18.3",
+    "winston-daily-rotate-file": "^5.0.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {

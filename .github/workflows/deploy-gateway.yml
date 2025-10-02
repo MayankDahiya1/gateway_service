@@ -44,5 +44,8 @@ jobs:
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
             -e KAFKA_BROKER=${{ secrets.KAFKA_BROKER }} \
             -e FRONTEND_URL=${{ secrets.FRONTEND_URL }} \
+            -e SENTRY_DSN=${{ secrets.SENTRY_DSN }} \
+            -e NODE_ENV=${{ secrets.NODE_ENV }} \
+            -e LOG_LEVEL=${{ secrets.LOG_LEVEL }} \
             -p 4000:4000 \
             ${{ secrets.DOCKERHUB_USERNAME }}/gateway_service:latest

@@ -4,6 +4,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import * as Sentry from "@sentry/node";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import { makeExecutableSchema } from "@graphql-tools/schema";
@@ -11,7 +12,7 @@ import { typeDefs } from "./graphql/typeDefs.js";
 import resolvers from "./graphql/resolvers.js";
 import { createContext } from "./context/index.js";
 import { getDirectiveTypeDefs, applyDirectives } from "./graphql/directives.js";
-import debug from "debug";
+import { createLogger } from "./utils/logger.js";
 import dotenv from "dotenv";
 
 /*
@@ -22,12 +23,20 @@ dotenv.config();
 /*
  * LOGGER
  */
-const _Log = { server: debug("gateway:server") };
+const _Log = createLogger("gateway:app");
 
 /*
  * EXPRESS APP
  */
 const _App = express();
+
+/*
+ * SENTRY MIDDLEWARE
+ */
+if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
+  _App.use(Sentry.Handlers.requestHandler());
+  _App.use(Sentry.Handlers.tracingHandler());
+}
 
 // Security middleware
 if (process.env.NODE_ENV === "production") {
@@ -81,10 +90,17 @@ const finalSchema = applyDirectives(schema);
  * INIT APOLLO
  */
 export async function initApollo(app) {
+  const { formatError, errorHandlingPlugin } = await import(
+    "./graphql/errorHandling.js"
+  );
+
   const server = new ApolloServer({
     schema: finalSchema,
     introspection: process.env.NODE_ENV !== "production",
     cache: "bounded",
+    formatError,
+    plugins: [errorHandlingPlugin],
+    includeStacktraceInErrorResponses: process.env.NODE_ENV === "development",
   });
 
   await server.start();
@@ -96,9 +112,16 @@ export async function initApollo(app) {
     })
   );
 
-  _Log.server("Apollo Server initialized");
+  _Log.info("Apollo Server initialized");
 
   return finalSchema;
+}
+
+/*
+ * SENTRY ERROR HANDLER
+ */
+if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
+  _App.use(Sentry.Handlers.errorHandler());
 }
 
 /*
