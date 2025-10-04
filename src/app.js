@@ -34,8 +34,14 @@ const _App = express();
  * SENTRY MIDDLEWARE
  */
 if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
-  _App.use(Sentry.Handlers.requestHandler());
-  _App.use(Sentry.Handlers.tracingHandler());
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+  });
+
+  // Attach Sentry middleware
+  _App.use(Sentry.setupExpressErrorHandler());
+  _App.use(Sentry.setupExpressRequestHandler());
 }
 
 // Security middleware
@@ -121,7 +127,7 @@ export async function initApollo(app) {
  * SENTRY ERROR HANDLER
  */
 if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
-  _App.use(Sentry.Handlers.errorHandler());
+  _App.use(Sentry.setupExpressErrorHandler());
 }
 
 /*
