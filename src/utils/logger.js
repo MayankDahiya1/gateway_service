@@ -14,7 +14,7 @@ const isDevelopment = ENV.NODE_ENV === "development";
 const isProduction = ENV.NODE_ENV === "production";
 
 /*
- * SENTRY TRANSPORT
+ * SENTRY TRANSPORT (used only in production)
  */
 class SentryTransport extends winston.Transport {
   constructor(opts) {
@@ -25,7 +25,12 @@ class SentryTransport extends winston.Transport {
   log(info, callback) {
     const { level, message, ...meta } = info;
 
-    // Only send errors and above to Sentry
+    if (!ENV.SENTRY_DSN) {
+      callback();
+      return;
+    }
+
+    // Only send error/warn logs to Sentry
     if (level === "error") {
       if (meta.error instanceof Error) {
         Sentry.captureException(meta.error, {
@@ -61,7 +66,7 @@ const logFormat = winston.format.combine(
 
 const transports = [];
 
-// Console transport for development
+// Console (for development)
 if (isDevelopment) {
   transports.push(
     new winston.transports.Console({
@@ -84,7 +89,6 @@ if (isDevelopment) {
 
 // File transports for production
 if (isProduction) {
-  // Error logs
   transports.push(
     new DailyRotateFile({
       filename: "logs/error-%DATE%.log",
@@ -97,7 +101,6 @@ if (isProduction) {
     })
   );
 
-  // Combined logs
   transports.push(
     new DailyRotateFile({
       filename: "logs/combined-%DATE%.log",
@@ -109,13 +112,12 @@ if (isProduction) {
     })
   );
 
-  // Sentry transport for production errors
   if (ENV.SENTRY_DSN) {
     transports.push(new SentryTransport());
   }
 }
 
-// Always add file logging for errors, even in development
+// Always write errors to a static file
 transports.push(
   new winston.transports.File({
     filename: "logs/error.log",
@@ -145,9 +147,7 @@ class Logger {
   }
 
   debug(message, meta = {}) {
-    if (isDevelopment) {
-      this.debugLogger(message, meta);
-    }
+    if (isDevelopment) this.debugLogger(message, meta);
     winstonLogger.debug(message, { module: this.module, ...meta });
   }
 
@@ -172,13 +172,11 @@ class Logger {
 
     winstonLogger.error(message, errorMeta);
 
-    // In development, also log to debug
     if (isDevelopment) {
       this.debugLogger(`ERROR: ${message}`, error || meta);
     }
   }
 
-  // GraphQL specific logging
   graphqlError(operation, error, variables = {}, context = {}) {
     this.error(`GraphQL ${operation} failed`, error, {
       operation,
@@ -188,7 +186,6 @@ class Logger {
     });
   }
 
-  // HTTP request logging
   httpRequest(method, url, statusCode, responseTime, meta = {}) {
     const level = statusCode >= 400 ? "warn" : "info";
     this[level](`${method} ${url} ${statusCode}`, {
@@ -200,7 +197,6 @@ class Logger {
     });
   }
 
-  // Service call logging
   serviceCall(service, operation, success, responseTime, meta = {}) {
     const level = success ? "info" : "error";
     this[level](`${service} ${operation} ${success ? "success" : "failed"}`, {

@@ -1,21 +1,7 @@
 /*
- * SENTRY INITIALIZATION (Must be first import)
+ * SENTRY INITIALIZATION (Handled by ErrorTracker)
+ * Note: Sentry is initialized in app.js via ErrorTracker
  */
-import * as Sentry from "@sentry/node";
-
-// Initialize Sentry before other imports
-if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.NODE_ENV,
-    tracesSampleRate: 1.0,
-    integrations: [
-      Sentry.nodeProfilingIntegration(),
-      Sentry.httpIntegration({ tracing: true }),
-      Sentry.expressIntegration({ app: null }),
-    ],
-  });
-}
 
 /*
  * IMPORTS

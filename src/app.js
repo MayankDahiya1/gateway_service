@@ -13,6 +13,7 @@ import resolvers from "./graphql/resolvers.js";
 import { createContext } from "./context/index.js";
 import { getDirectiveTypeDefs, applyDirectives } from "./graphql/directives.js";
 import { createLogger } from "./utils/logger.js";
+import ErrorTracker, { initSentry } from "./utils/ErrorTracker.js";
 import dotenv from "dotenv";
 
 /*
@@ -31,20 +32,22 @@ const _Log = createLogger("gateway:app");
 const _App = express();
 
 /*
- * SENTRY MIDDLEWARE
+ * INITIALIZE SENTRY (from ErrorTracker.js)
  */
-if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    tracesSampleRate: 1.0,
-  });
+const sentryInitialized = initSentry();
 
-  // Attach Sentry middleware
-  _App.use(Sentry.setupExpressErrorHandler());
-  _App.use(Sentry.setupExpressRequestHandler());
+/*
+ * SENTRY MIDDLEWARE — must be added before any routes
+ * (Only add if Sentry was successfully initialized)
+ */
+if (sentryInitialized) {
+  _App.use(Sentry.Handlers.requestHandler());
+  _App.use(Sentry.Handlers.tracingHandler());
 }
 
-// Security middleware
+/*
+ * SECURITY + CORS
+ */
 if (process.env.NODE_ENV === "production") {
   _App.use(
     cors({
@@ -69,7 +72,9 @@ if (process.env.NODE_ENV === "production") {
   );
 }
 
-// Body parser
+/*
+ * BODY PARSER
+ */
 _App.use(express.json());
 
 /*
@@ -118,17 +123,35 @@ export async function initApollo(app) {
     })
   );
 
-  _Log.info("Apollo Server initialized");
+  _Log.info("🚀 Apollo Server initialized successfully");
 
   return finalSchema;
 }
 
 /*
- * SENTRY ERROR HANDLER
+ * SENTRY ERROR HANDLER (must come after routes)
  */
-if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
-  _App.use(Sentry.setupExpressErrorHandler());
+if (sentryInitialized) {
+  _App.use(Sentry.Handlers.errorHandler());
 }
+
+/*
+ * GLOBAL FALLBACK ERROR HANDLER
+ */
+_App.use((err, req, res, next) => {
+  ErrorTracker.logError(err, {
+    service: "gateway",
+    route: req.originalUrl,
+    method: req.method,
+  });
+
+  _Log.error("Unhandled Error", err);
+
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
+});
 
 /*
  * EXPORT APP
