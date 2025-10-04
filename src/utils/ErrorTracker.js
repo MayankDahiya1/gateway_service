@@ -32,8 +32,8 @@ export const initSentry = () => {
       environment: process.env.NODE_ENV || "production",
       release: process.env.npm_package_version || "1.0.0",
       integrations: [
-        Sentry.httpIntegration({ tracing: true }),
-        Sentry.expressIntegration(),
+        new Sentry.Integrations.Http({ tracing: true }),
+        new Sentry.Integrations.Express(),
       ],
       sendDefaultPii: false,
       tracesSampleRate: 1.0,
